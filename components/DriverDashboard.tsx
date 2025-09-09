@@ -1,71 +1,123 @@
-import React from 'react';
-import type { Booking, Driver } from '../types';
-import { LogoutIcon } from './icons/LogoutIcon';
-import { LocationPinIcon } from './icons/LocationPinIcon';
-import { PhoneIcon } from './icons/PhoneIcon';
+// Fix: Implementing the DriverDashboard to allow drivers to view and manage jobs.
+// This replaces the placeholder content.
+import React, { useState } from 'react';
+import { Driver, Booking, BookingStatus } from '../types';
+import MapModal from './MapModal';
 
 interface DriverDashboardProps {
   driver: Driver;
-  bookings: Booking[];
-  onAcceptBooking: (bookingId: number) => void;
-  onLogout: () => void;
+  bookings: Booking[]; // Mix of pending and assigned to this driver
+  onUpdateBooking: (booking: Booking) => void;
 }
 
-const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, bookings, onAcceptBooking, onLogout }) => {
-    const pendingBookings = bookings.filter(b => b.status === 'PENDING');
-    const myJob = bookings.find(b => b.assignedDriver?.id === driver.id && b.status === 'ACCEPTED');
+const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, bookings, onUpdateBooking }) => {
+  const [isMapVisible, setMapVisible] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-    return (
-        <div className="animate-fade-in">
-            <header className="flex justify-between items-center mb-4 pb-2 border-b">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-800">Welcome, {driver.name}</h2>
-                    <p className="text-sm text-gray-500">Here are the available jobs.</p>
-                </div>
-                <button onClick={onLogout} className="flex items-center text-sm text-gray-600 hover:text-primary transition-colors">
-                    <LogoutIcon className="w-5 h-5 mr-1" />
-                    Logout
-                </button>
-            </header>
+  const availableJobs = bookings.filter(b => b.status === BookingStatus.PENDING);
+  const myJobs = bookings.filter(b => b.driverId === driver.id);
+  
+  const handleAcceptJob = (booking: Booking) => {
+    onUpdateBooking({ ...booking, driverId: driver.id, status: BookingStatus.ACCEPTED });
+  };
 
-            {myJob && (
-                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h3 className="text-lg font-semibold text-green-800 mb-2">Your Current Job</h3>
-                    <div className="text-sm text-gray-700 space-y-2">
-                        <p><strong>Customer:</strong> {myJob.customerName}</p>
-                        <p className="flex items-center"><PhoneIcon className="w-4 h-4 mr-2" /><a href={`tel:${myJob.customerPhone}`} className="text-primary hover:underline">{myJob.customerPhone}</a></p>
-                        <p><strong>From:</strong> {myJob.pickup}</p>
-                        <p><strong>To:</strong> {myJob.dropoff}</p>
-                        <p><strong>Time:</strong> {new Date(myJob.bookingTime).toLocaleString()}</p>
-                    </div>
-                </div>
+  const handleUpdateJobStatus = (booking: Booking, status: BookingStatus) => {
+    let fare: number | undefined = booking.fare;
+    if (status === BookingStatus.COMPLETED && !fare) {
+        // Simple fare calculation for demo
+        fare = Math.floor(Math.random() * (1000 - 300 + 1) + 300);
+    }
+    onUpdateBooking({ ...booking, status, fare });
+  };
+  
+  const openMap = (booking: Booking) => {
+      setSelectedBooking(booking);
+      setMapVisible(true);
+  }
+
+  const getStatusChipColor = (status: BookingStatus) => {
+    switch(status) {
+        case BookingStatus.COMPLETED: return 'bg-green-100 text-green-800';
+        case BookingStatus.PENDING: return 'bg-yellow-100 text-yellow-800';
+        case BookingStatus.ACCEPTED: return 'bg-blue-100 text-blue-800';
+        case BookingStatus.IN_PROGRESS: return 'bg-indigo-100 text-indigo-800';
+        case BookingStatus.CANCELLED: return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  const renderJobCard = (job: Booking, isAvailable: boolean) => (
+    <li key={job.id} className="bg-white p-4 border rounded-lg shadow-sm">
+        <div className="flex justify-between items-start mb-2">
+            <p className="font-semibold text-gray-800 text-lg">
+                {job.pickupLocation} <span className="text-gray-500">to</span> {job.dropoffLocation}
+            </p>
+            {!isAvailable && (
+                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusChipColor(job.status)}`}>
+                    {job.status}
+                </span>
             )}
-            
-            <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">Available Jobs ({pendingBookings.length})</h3>
-                <div className="space-y-3 max-h-80 overflow-y-auto">
-                    {pendingBookings.length > 0 ? (
-                        pendingBookings.map(booking => (
-                            <div key={booking.id} className="p-3 bg-slate-50 border rounded-lg">
-                                <p className="font-semibold">{booking.customerName}</p>
-                                <p className="text-sm text-gray-500 flex items-center mt-1"><LocationPinIcon className="w-4 h-4 mr-1"/>{booking.pickup} to {booking.dropoff}</p>
-                                <p className="text-sm text-gray-500 mt-1">Time: {new Date(booking.bookingTime).toLocaleTimeString()}</p>
-                                <button
-                                    onClick={() => onAcceptBooking(booking.id)}
-                                    disabled={!!myJob}
-                                    className="w-full mt-3 bg-success text-white font-bold py-2 px-3 rounded-lg hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                >
-                                    Accept Job
-                                </button>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-gray-500 text-center py-4">No pending jobs right now.</p>
-                    )}
-                </div>
-            </div>
         </div>
-    );
+        <p className="text-sm text-gray-500">Vehicle: {job.vehicleType} | Customer ID: {job.customerId}</p>
+        
+        <div className="mt-4 flex space-x-2">
+             <button onClick={() => openMap(job)} className="text-sm text-primary hover:underline">View Route</button>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-200 flex space-x-2">
+            {isAvailable && (
+                <button onClick={() => handleAcceptJob(job)} className="px-4 py-2 text-sm font-bold text-white bg-success rounded-lg hover:bg-opacity-90 transition">
+                    Accept Job
+                </button>
+            )}
+            {!isAvailable && job.status === BookingStatus.ACCEPTED && (
+                <button onClick={() => handleUpdateJobStatus(job, BookingStatus.IN_PROGRESS)} className="px-4 py-2 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary-dark transition">
+                    Start Trip
+                </button>
+            )}
+             {!isAvailable && job.status === BookingStatus.IN_PROGRESS && (
+                <button onClick={() => handleUpdateJobStatus(job, BookingStatus.COMPLETED)} className="px-4 py-2 text-sm font-bold text-white bg-primary rounded-lg hover:bg-primary-dark transition">
+                    Mark as Completed
+                </button>
+            )}
+        </div>
+    </li>
+  );
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Available Jobs</h2>
+        {availableJobs.length > 0 ? (
+          <ul className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {availableJobs.map(job => renderJobCard(job, true))}
+          </ul>
+        ) : (
+          <div className="bg-white p-6 rounded-lg shadow-sm text-center text-gray-500">
+            No available jobs right now.
+          </div>
+        )}
+      </div>
+      <div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">My Current Jobs</h2>
+        {myJobs.length > 0 ? (
+          <ul className="space-y-4 max-h-[60vh] overflow-y-auto">
+            {myJobs.map(job => renderJobCard(job, false))}
+          </ul>
+        ) : (
+          <div className="bg-white p-6 rounded-lg shadow-sm text-center text-gray-500">
+            You have no active jobs.
+          </div>
+        )}
+      </div>
+      {isMapVisible && selectedBooking && (
+        <MapModal
+            booking={selectedBooking}
+            onClose={() => setMapVisible(false)}
+        />
+      )}
+    </div>
+  );
 };
 
 export default DriverDashboard;

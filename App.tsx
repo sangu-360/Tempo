@@ -1,139 +1,158 @@
+// Fix: Implemented the main App component to manage state, routing, and authentication.
+// This replaces the placeholder content and fixes the module resolution error in index.tsx.
 import React, { useState } from 'react';
-// FIX: Import BookingStatus enum to use its members.
-import { AppScreen, UserRole, BookingStatus } from './types';
-import type { BaseUser, Booking, Driver } from './types';
-import { ADMINS, CUSTOMERS, DRIVERS } from './constants';
+import { User, UserRole, Booking, Driver } from './types';
+import { USERS, DRIVERS, BOOKINGS, ADMIN_PASSWORD } from './constants';
+import { generateId, sleep } from './utils';
 
+import WelcomeScreen from './components/WelcomeScreen';
 import LoginScreen from './components/LoginScreen';
 import CustomerDashboard from './components/CustomerDashboard';
 import DriverDashboard from './components/DriverDashboard';
 import AdminDashboard from './components/AdminDashboard';
-import { TruckIcon } from './components/icons/TruckIcon';
+import { TempoGoLogo } from './components/icons/TempoGoLogo';
+import { LogoutIcon } from './components/icons/LogoutIcon';
 
 const App: React.FC = () => {
-  const [screen, setScreen] = useState<AppScreen>(AppScreen.LOGIN);
-  const [loggedInUser, setLoggedInUser] = useState<BaseUser | null>(null);
-  
-  const [drivers, setDrivers] = useState<Driver[]>(DRIVERS);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [view, setView] = useState<'welcome' | 'login' | 'dashboard'>('welcome');
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (id: string, role: UserRole) => {
+  // State managed by the "backend" (App component)
+  const [users, setUsers] = useState<User[]>(USERS);
+  const [drivers, setDrivers] = useState<Driver[]>(DRIVERS);
+  const [bookings, setBookings] = useState<Booking[]>(BOOKINGS);
+
+  const handleLogin = async (id: string, role: UserRole, password?: string) => {
+    await sleep(500); // Simulate network delay
     setError(null);
-    let user: BaseUser | Driver | undefined;
-    
-    if (role === UserRole.CUSTOMER) user = CUSTOMERS.find(c => c.id === id);
-    if (role === UserRole.ADMIN) user = ADMINS.find(a => a.id === id);
-    if (role === UserRole.DRIVER) {
-        const driver = drivers.find(d => d.id === id);
-        if (driver && !driver.isAuthorized) {
-            setError('Unauthorized access. Please contact an admin.');
-            return;
+    if (role === UserRole.ADMIN) {
+      if (id === 'admin' && password === ADMIN_PASSWORD) {
+        const adminUser = users.find(u => u.id === 'admin');
+        if (adminUser) {
+          setCurrentUser(adminUser);
+          setView('dashboard');
         }
-        user = driver;
+      } else {
+        setError("Invalid admin credentials.");
+      }
+      return;
     }
 
+    const user = users.find(u => u.id === id && u.role === role);
     if (user) {
-      setLoggedInUser(user);
-      if (user.role === UserRole.CUSTOMER) setScreen(AppScreen.CUSTOMER_DASHBOARD);
-      if (user.role === UserRole.DRIVER) setScreen(AppScreen.DRIVER_DASHBOARD);
-      if (user.role === UserRole.ADMIN) setScreen(AppScreen.ADMIN_DASHBOARD);
+      setCurrentUser(user);
+      setView('dashboard');
     } else {
-      setError('Invalid ID. Please try again.');
+      setError(`No ${role} found with that ID. Please check the ID or register.`);
     }
   };
+
+  const handleRegister = async (newUser: { id: string, name: string }) => {
+    await sleep(500);
+    setError(null);
+    if (users.some(u => u.id === newUser.id)) {
+        setError("This Login ID is already taken. Please choose another one.");
+        return;
+    }
+    const customer: User = { ...newUser, role: UserRole.CUSTOMER };
+    setUsers([...users, customer]);
+    setCurrentUser(customer);
+    setView('dashboard');
+  }
 
   const handleLogout = () => {
-    setLoggedInUser(null);
-    setScreen(AppScreen.LOGIN);
-    setError(null);
-  };
-
-  const handleBookingRequest = (bookingDetails: Omit<Booking, 'id' | 'status' | 'customerId' | 'assignedDriver'>) => {
-    if (!loggedInUser) return;
-    const newBooking: Booking = {
-      ...bookingDetails,
-      id: Date.now(),
-      // FIX: Use BookingStatus enum member instead of string literal to resolve type error.
-      status: BookingStatus.PENDING,
-      customerId: loggedInUser.id,
-    };
-    setBookings(prev => [...prev, newBooking]);
-  };
-
-  const handleAcceptBooking = (bookingId: number) => {
-    if (!loggedInUser || loggedInUser.role !== UserRole.DRIVER) return;
-    const driver = drivers.find(d => d.id === loggedInUser.id);
-    if (!driver) return;
-
-    setBookings(prevBookings =>
-      prevBookings.map(b =>
-        // FIX: Use BookingStatus enum member instead of string literal to resolve type error.
-        b.id === bookingId ? { ...b, status: BookingStatus.ACCEPTED, assignedDriver: driver } : b
-      )
-    );
+    setCurrentUser(null);
+    setView('login');
   };
   
-    const handleAddDriver = (newDriver: Omit<Driver, 'role' | 'isAuthorized' | 'imageUrl'> & {imageUrl?: string}) => {
-    const fullDriver: Driver = {
-        ...newDriver,
-        imageUrl: newDriver.imageUrl || `https://i.pravatar.cc/150?u=${newDriver.id}`,
-        role: UserRole.DRIVER,
-        isAuthorized: true
-    };
-    setDrivers(prev => [...prev, fullDriver]);
-    alert(`Driver ${fullDriver.name} added successfully!`);
+  const handleGetStarted = () => {
+    setView('login');
   };
 
+  const handleNewBooking = (newBookingData: Omit<Booking, 'id' | 'customerId' | 'status'>) => {
+    if(!currentUser) return;
+    const newBooking: Booking = {
+      ...newBookingData,
+      id: generateId('BK'),
+      customerId: currentUser.id,
+      status: 'pending',
+    };
+    setBookings(prev => [...prev, newBooking]);
+    return newBooking;
+  };
 
-  const renderContent = () => {
-    switch (screen) {
-      case AppScreen.CUSTOMER_DASHBOARD:
-        return loggedInUser && (
-            <CustomerDashboard 
-                customer={loggedInUser}
-                bookings={bookings.filter(b => b.customerId === loggedInUser.id)}
-                onBookingRequest={handleBookingRequest}
-                onLogout={handleLogout}
-            />
-        );
-      case AppScreen.DRIVER_DASHBOARD:
-        return loggedInUser && (
-            <DriverDashboard
-                driver={loggedInUser as Driver}
-                bookings={bookings}
-                onAcceptBooking={handleAcceptBooking}
-                onLogout={handleLogout}
-            />
-        );
-      case AppScreen.ADMIN_DASHBOARD:
-          return loggedInUser && (
-              <AdminDashboard 
-                drivers={drivers}
-                onAddDriver={handleAddDriver}
-                onLogout={handleLogout}
-              />
-          );
-      case AppScreen.LOGIN:
+  const handleUpdateBooking = (updatedBooking: Booking) => {
+     setBookings(prev => prev.map(b => b.id === updatedBooking.id ? updatedBooking : b));
+  };
+  
+  const handleAddDriver = (newDriverData: Omit<Driver, 'id'>) => {
+    const newDriver: Driver = {
+      ...newDriverData,
+      id: generateId('DR'),
+    };
+    const newUser: User = {
+        id: newDriver.id,
+        name: newDriver.name,
+        role: UserRole.DRIVER,
+    }
+    setDrivers(prev => [...prev, newDriver]);
+    setUsers(prev => [...prev, newUser]);
+  }
+
+  const renderDashboard = () => {
+    if (!currentUser) return null;
+    switch (currentUser.role) {
+      case UserRole.CUSTOMER:
+        return <CustomerDashboard 
+                    user={currentUser} 
+                    bookings={bookings.filter(b => b.customerId === currentUser.id)}
+                    onNewBooking={handleNewBooking}
+                />;
+      case UserRole.DRIVER:
+        return <DriverDashboard 
+                    driver={drivers.find(d => d.id === currentUser.id)!} 
+                    bookings={bookings.filter(b => b.driverId === currentUser.id || b.status === 'pending')}
+                    onUpdateBooking={handleUpdateBooking}
+                />;
+      case UserRole.ADMIN:
+        return <AdminDashboard 
+                    allBookings={bookings}
+                    allDrivers={drivers}
+                    onAddDriver={handleAddDriver}
+                />;
       default:
-        return <LoginScreen onLogin={handleLogin} error={error} />;
+        return null;
     }
   };
 
   return (
-    <div className="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-md mx-auto">
-        <header className="flex items-center justify-center mb-6">
-          <TruckIcon className="w-12 h-12 text-primary" />
-          <h1 className="text-4xl font-bold text-gray-800 ml-3">TempoGo</h1>
-        </header>
-        <main className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 transition-all duration-500 min-h-[480px]">
-          {renderContent()}
-        </main>
-         <footer className="text-center mt-6 text-gray-500 text-sm">
-            <p>&copy; {new Date().getFullYear()} TempoGo. All rights reserved.</p>
-        </footer>
-      </div>
+    <div className="bg-gray-100 min-h-screen font-sans">
+      <header className="bg-white shadow-md">
+        <nav className="container mx-auto px-6 py-3 flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <TempoGoLogo className="h-8 w-8 text-primary"/>
+            <span className="text-xl font-bold text-gray-700">TempoGo</span>
+          </div>
+          {currentUser && (
+            <div className="flex items-center space-x-4">
+              <span className="text-gray-600">Welcome, {currentUser.name}!</span>
+              <button 
+                onClick={handleLogout} 
+                className="flex items-center text-gray-500 hover:text-primary transition-colors"
+                title="Logout"
+              >
+                <LogoutIcon className="h-6 w-6"/>
+              </button>
+            </div>
+          )}
+        </nav>
+      </header>
+      <main className="container mx-auto p-6">
+        {view === 'welcome' && <WelcomeScreen onGetStarted={handleGetStarted} />}
+        {view === 'login' && <LoginScreen onLogin={handleLogin} onRegister={handleRegister} error={error} />}
+        {view === 'dashboard' && renderDashboard()}
+      </main>
     </div>
   );
 };

@@ -1,7 +1,7 @@
+// Fix: Implementing the ConfirmationScreen component to show booking details to the customer.
+// This replaces the placeholder content.
 import React from 'react';
-import type { Booking } from '../types';
-import { PhoneIcon } from './icons/PhoneIcon';
-import { TruckIcon } from './icons/TruckIcon';
+import { Booking } from '../types';
 
 interface ConfirmationScreenProps {
   booking: Booking;
@@ -9,61 +9,29 @@ interface ConfirmationScreenProps {
 }
 
 const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({ booking, onNewBooking }) => {
-  const { assignedDriver } = booking;
-
-  if (!assignedDriver) {
-    return (
-        <div className="text-center p-8">
-            <h2 className="text-xl font-semibold text-red-600">Error: No driver assigned.</h2>
-            <button onClick={onNewBooking} className="mt-4 bg-primary text-white font-bold py-2 px-4 rounded-lg">
-              Go Back
-            </button>
-        </div>
-    );
-  }
-
-  const arrivalTime = new Date(booking.bookingTime);
-  
   return (
-    <div className="text-center animate-slide-in-up">
-      <h2 className="text-2xl font-bold text-success mb-2">Booking Confirmed!</h2>
-      <p className="text-gray-600 mb-6">Your tempo is scheduled. Please find the driver details below.</p>
-      
-      <div className="bg-slate-50 border border-gray-200 rounded-lg p-6 mb-6">
-        <img src={assignedDriver.imageUrl} alt={assignedDriver.name} className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-white shadow-md"/>
-        <h3 className="text-xl font-semibold text-gray-800">{assignedDriver.name}</h3>
-        <p className="text-gray-500">Your assigned driver</p>
+    <div className="bg-white p-8 rounded-lg shadow-lg text-center animate-fade-in max-w-lg mx-auto">
+        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Booking Confirmed!</h2>
+        <p className="text-gray-600 mb-6">We are finding a driver for you. You will be notified once a driver accepts your request.</p>
         
-        <div className="flex items-center justify-center mt-4 text-primary">
-            <PhoneIcon className="w-5 h-5 mr-2" />
-            <a href={`tel:${assignedDriver.phone}`} className="font-semibold text-lg hover:underline">{assignedDriver.phone}</a>
+        <div className="text-left bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2">
+            <p><span className="font-semibold">Booking ID:</span> {booking.id}</p>
+            <p><span className="font-semibold">From:</span> {booking.pickupLocation}</p>
+            <p><span className="font-semibold">To:</span> {booking.dropoffLocation}</p>
+            <p><span className="font-semibold">Vehicle:</span> {booking.vehicleType}</p>
         </div>
-      </div>
 
-      <div className="text-left space-y-3">
-        <div className="flex items-center">
-            <TruckIcon className="w-6 h-6 mr-3 text-gray-500"/>
-            <div>
-                <p className="font-semibold text-gray-700">Vehicle Number</p>
-                <p className="text-gray-600">{assignedDriver.vehicleNumber}</p>
-            </div>
-        </div>
-        <div className="flex items-center">
-            <div className="w-6 h-6 mr-3 text-gray-500 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <div>
-                <p className="font-semibold text-gray-700">Scheduled Pickup Time</p>
-                <p className="text-gray-600">{arrivalTime.toLocaleString()}</p>
-            </div>
-        </div>
-      </div>
-      
-      <div className="mt-8 space-y-3">
-        <button onClick={onNewBooking} className="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition">
-          Make a New Booking
+        <button
+          onClick={onNewBooking}
+          className="mt-8 w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark transition duration-300"
+        >
+          Make Another Booking
         </button>
-      </div>
     </div>
   );
 };

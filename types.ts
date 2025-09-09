@@ -1,44 +1,47 @@
+// Fix: Populating the types.ts file with all necessary type definitions.
+// This resolves 'Cannot find name' errors and module resolution issues.
+
 export enum UserRole {
-  CUSTOMER = 'CUSTOMER',
-  DRIVER = 'DRIVER',
-  ADMIN = 'ADMIN',
+  CUSTOMER = 'customer',
+  DRIVER = 'driver',
+  ADMIN = 'admin',
 }
 
-export enum AppScreen {
-  LOGIN = 'LOGIN',
-  CUSTOMER_DASHBOARD = 'CUSTOMER_DASHBOARD',
-  DRIVER_DASHBOARD = 'DRIVER_DASHBOARD',
-  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
+export interface User {
+  id: string;
+  name: string;
+  role: UserRole;
 }
 
 export enum BookingStatus {
-  PENDING = 'PENDING',
-  ACCEPTED = 'ACCEPTED',
-  COMPLETED = 'COMPLETED',
-}
-
-export interface BaseUser {
-    id: string; // username
-    role: UserRole;
-    name: string;
-}
-
-export interface Driver extends BaseUser {
-  role: UserRole.DRIVER;
-  phone: string;
-  vehicleNumber: string;
-  imageUrl: string;
-  isAuthorized: boolean;
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
 }
 
 export interface Booking {
-  id: number;
-  pickup: string;
-  dropoff: string;
-  customerName: string;
-  customerPhone: string;
-  bookingTime: string;
-  status: BookingStatus;
+  id: string;
   customerId: string;
-  assignedDriver?: Driver;
+  driverId?: string;
+  pickupLocation: string;
+  dropoffLocation: string;
+  status: BookingStatus;
+  fare?: number;
+  vehicleType: string;
+}
+
+export interface Driver {
+    id: string;
+    name: string;
+    vehicleDetails: string;
+    currentLocation: string;
+    isAvailable: boolean;
+}
+
+export interface Location {
+    lat: number;
+    lng: number;
+    address: string;
 }

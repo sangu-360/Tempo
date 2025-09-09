@@ -1,83 +1,103 @@
+// Fix: Implementing the BookingForm component to allow customers to create new bookings.
+// This replaces the placeholder content.
 import React, { useState } from 'react';
-import type { Booking } from '../types';
+import { Booking } from '../types';
 import { LocationPinIcon } from './icons/LocationPinIcon';
-import { UserIcon } from './icons/UserIcon';
-import { PhoneIcon } from './icons/PhoneIcon';
+import { TruckIcon } from './icons/TruckIcon';
 
 interface BookingFormProps {
-  customerName: string;
-  onBookingRequest: (details: Omit<Booking, 'id' | 'status' | 'customerId' | 'assignedDriver'>) => void;
+  onSubmit: (bookingData: Omit<Booking, 'id' | 'customerId' | 'status'>) => void;
 }
 
-const BookingForm: React.FC<BookingFormProps> = ({ customerName, onBookingRequest }) => {
-  const [pickup, setPickup] = useState('');
-  const [dropoff, setDropoff] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [bookingTime, setBookingTime] = useState('');
-  const [errors, setErrors] = useState<Partial<Record<keyof Omit<Booking, 'id'|'status'|'customerId'|'assignedDriver'|'customerName'>, string>>>({});
-  
-  const getLocalDateTime = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    return now.toISOString().slice(0, 16);
-  }
-
-  const validateForm = () => {
-    const newErrors: Partial<Record<string, string>> = {};
-    if (!pickup.trim()) newErrors.pickup = 'Pickup location is required.';
-    if (!dropoff.trim()) newErrors.dropoff = 'Drop-off location is required.';
-    if (!customerPhone.trim()) {
-      newErrors.customerPhone = 'Phone number is required.';
-    } else if (!/^\+?[1-9]\d{1,14}$/.test(customerPhone)) {
-      newErrors.customerPhone = 'Please enter a valid phone number.';
-    }
-    if (!bookingTime) {
-        newErrors.bookingTime = 'Booking time is required.';
-    } else if (new Date(bookingTime) < new Date()) {
-        newErrors.bookingTime = 'Booking time cannot be in the past.';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+const BookingForm: React.FC<BookingFormProps> = ({ onSubmit }) => {
+  const [pickupLocation, setPickupLocation] = useState('');
+  const [dropoffLocation, setDropoffLocation] = useState('');
+  const [vehicleType, setVehicleType] = useState('Tata Ace');
+  const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      onBookingRequest({ pickup, dropoff, customerName, customerPhone, bookingTime });
+    if (!pickupLocation || !dropoffLocation) {
+      setError('Please fill in both pickup and drop-off locations.');
+      return;
     }
+    setError('');
+    onSubmit({
+      pickupLocation,
+      dropoffLocation,
+      vehicleType,
+    });
+    setPickupLocation('');
+    setDropoffLocation('');
   };
 
-  const InputField = ({ id, label, value, onChange, placeholder, error, IconComponent, type = "text", min }: { id: string, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, placeholder: string, error?: string, IconComponent?: React.ElementType, type?: string, min?: string }) => (
-    <div className="mb-4">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-600 mb-1">{label}</label>
-      <div className="relative">
-        {IconComponent && <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <IconComponent className="h-5 w-5 text-gray-400" />
-        </div>}
-        <input
-          type={type}
-          id={id}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          min={min}
-          className={`w-full ${IconComponent ? 'pl-10' : 'pl-3'} pr-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent transition`}
-        />
-      </div>
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-    </div>
-  );
-
   return (
-    <div className="animate-fade-in">
-      <h2 className="text-2xl font-semibold text-center text-gray-700 mb-6">Book a Tempo Instantly</h2>
-      <form onSubmit={handleSubmit} noValidate>
-        <InputField id="pickup" label="Pickup Location" value={pickup} onChange={(e) => setPickup(e.target.value)} placeholder="Enter pickup address" error={errors.pickup} IconComponent={LocationPinIcon} />
-        <InputField id="dropoff" label="Drop-off Location" value={dropoff} onChange={(e) => setDropoff(e.target.value)} placeholder="Enter drop-off address" error={errors.dropoff} IconComponent={LocationPinIcon} />
-        <InputField id="phone" label="Your Phone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+91 12345 67890" error={errors.customerPhone} IconComponent={PhoneIcon} />
-        <InputField id="bookingTime" label="Pickup Time" type="datetime-local" value={bookingTime} onChange={(e) => setBookingTime(e.target.value)} placeholder="" error={errors.bookingTime} min={getLocalDateTime()} />
-
-        <button type="submit" className="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark transition duration-300 ease-in-out mt-4">
+    <div className="bg-white p-8 rounded-lg shadow-lg animate-fade-in-down">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Book a Tempo</h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+        <div>
+          <label htmlFor="pickup" className="block text-sm font-medium text-gray-700 mb-1">
+            Pickup Location
+          </label>
+          <div className="relative">
+             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <LocationPinIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              id="pickup"
+              value={pickupLocation}
+              onChange={(e) => setPickupLocation(e.target.value)}
+              placeholder="e.g., Koramangala, Bangalore"
+              required
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent transition"
+            />
+          </div>
+        </div>
+        <div>
+          <label htmlFor="dropoff" className="block text-sm font-medium text-gray-700 mb-1">
+            Drop-off Location
+          </label>
+           <div className="relative">
+             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <LocationPinIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              id="dropoff"
+              value={dropoffLocation}
+              onChange={(e) => setDropoffLocation(e.target.value)}
+              placeholder="e.g., HSR Layout, Bangalore"
+              required
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent transition"
+            />
+          </div>
+        </div>
+        <div>
+          <label htmlFor="vehicle" className="block text-sm font-medium text-gray-700 mb-1">
+            Vehicle Type
+          </label>
+           <div className="relative">
+             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <TruckIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <select
+              id="vehicle"
+              value={vehicleType}
+              onChange={(e) => setVehicleType(e.target.value)}
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent transition appearance-none"
+            >
+              <option>Tata Ace</option>
+              <option>Mahindra Bolero</option>
+              <option>Ashok Leyland Dost</option>
+            </select>
+          </div>
+        </div>
+        <button
+          type="submit"
+          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-dark transition duration-300"
+        >
           Find Driver
         </button>
       </form>
