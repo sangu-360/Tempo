@@ -1,22 +1,44 @@
-
-export enum AppStatus {
-  FORM = 'FORM',
-  LOADING = 'LOADING',
-  CONFIRMED = 'CONFIRMED',
+export enum UserRole {
+  CUSTOMER = 'CUSTOMER',
+  DRIVER = 'DRIVER',
+  ADMIN = 'ADMIN',
 }
 
-export interface BookingDetails {
-  pickup: string;
-  dropoff: string;
-  name: string;
-  phone: string;
+export enum AppScreen {
+  LOGIN = 'LOGIN',
+  CUSTOMER_DASHBOARD = 'CUSTOMER_DASHBOARD',
+  DRIVER_DASHBOARD = 'DRIVER_DASHBOARD',
+  ADMIN_DASHBOARD = 'ADMIN_DASHBOARD',
 }
 
-export interface Driver {
-  id: number;
-  name: string;
+export enum BookingStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  COMPLETED = 'COMPLETED',
+}
+
+export interface BaseUser {
+    id: string; // username
+    role: UserRole;
+    name: string;
+}
+
+export interface Driver extends BaseUser {
+  role: UserRole.DRIVER;
   phone: string;
   vehicleNumber: string;
-  eta: number; // in minutes
   imageUrl: string;
+  isAuthorized: boolean;
+}
+
+export interface Booking {
+  id: number;
+  pickup: string;
+  dropoff: string;
+  customerName: string;
+  customerPhone: string;
+  bookingTime: string;
+  status: BookingStatus;
+  customerId: string;
+  assignedDriver?: Driver;
 }

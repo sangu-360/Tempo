@@ -1,37 +1,50 @@
-
-import type { Driver } from './types';
+import type { Driver, BaseUser } from './types';
+import { UserRole } from './types';
 
 export const DRIVERS: Driver[] = [
   {
-    id: 1,
+    id: 'ravi.k',
+    role: UserRole.DRIVER,
     name: 'Ravi Kumar',
     phone: '+91 98765 43210',
     vehicleNumber: 'MH 12 AB 3456',
-    eta: 5,
-    imageUrl: 'https://picsum.photos/seed/ravi/200'
+    imageUrl: 'https://i.pravatar.cc/150?u=ravi.k',
+    isAuthorized: true
   },
   {
-    id: 2,
+    id: 'suresh.p',
+    role: UserRole.DRIVER,
     name: 'Suresh Patel',
     phone: '+91 91234 56789',
     vehicleNumber: 'DL 03 XY 9876',
-    eta: 8,
-    imageUrl: 'https://picsum.photos/seed/suresh/200'
+    imageUrl: 'https://i.pravatar.cc/150?u=suresh.p',
+    isAuthorized: true
   },
-  {
-    id: 3,
-    name: 'Anil Singh',
-    phone: '+91 99887 76655',
-    vehicleNumber: 'KA 05 MN 1234',
-    eta: 12,
-    imageUrl: 'https://picsum.photos/seed/anil/200'
-  },
-  {
-    id: 4,
+    {
+    id: 'manoj.s',
+    role: UserRole.DRIVER,
     name: 'Manoj Sharma',
     phone: '+91 96543 21098',
     vehicleNumber: 'TN 22 PQ 5678',
-    eta: 7,
-    imageUrl: 'https://picsum.photos/seed/manoj/200'
+    imageUrl: 'https://i.pravatar.cc/150?u=manoj.s',
+    isAuthorized: true
+  },
+  {
+    id: 'anil.s',
+    role: UserRole.DRIVER,
+    name: 'Anil Singh',
+    phone: '+91 99887 76655',
+    vehicleNumber: 'KA 05 MN 1234',
+    imageUrl: 'https://i.pravatar.cc/150?u=anil.s',
+    isAuthorized: false
   }
+];
+
+export const CUSTOMERS: BaseUser[] = [
+    { id: 'priya.s', role: UserRole.CUSTOMER, name: 'Priya Sharma' },
+    { id: 'amit.s', role: UserRole.CUSTOMER, name: 'Amit Singh' },
+];
+
+export const ADMINS: BaseUser[] = [
+    { id: 'admin', role: UserRole.ADMIN, name: 'Admin User' },
 ];

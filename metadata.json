@@ -1,5 +1,5 @@
 {
   "name": "TempoGo - Fast Tempo Booking",
-  "description": "An application to quickly book a tempo for your transportation needs. Enter your pickup and drop-off locations to get assigned a driver and receive their details instantly.",
+  "description": "A comprehensive tempo booking application with role-based access for customers, drivers, and administrators. Customers can schedule bookings, drivers can accept jobs, and admins can manage the driver fleet.",
   "requestFramePermissions": []
 }
