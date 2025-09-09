@@ -1,0 +1,5 @@
+{
+  "name": "TempoGo - Fast Tempo Booking",
+  "description": "An application to quickly book a tempo for your transportation needs. Enter your pickup and drop-off locations to get assigned a driver and receive their details instantly.",
+  "requestFramePermissions": []
+}
