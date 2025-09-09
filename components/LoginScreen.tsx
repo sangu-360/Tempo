@@ -3,7 +3,7 @@ import { UserRole } from '../types';
 
 interface LoginScreenProps {
   onLogin: (id: string, role: UserRole, password?: string) => void;
-  onRegister: (newUser: { id: string; name: string }) => void;
+  onRegister: (newUser: { id: string; name: string; phone: string; }) => void;
   error: string | null;
 }
 
@@ -18,6 +18,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onRegister, error })
   // Registration states
   const [regName, setRegName] = useState('');
   const [regId, setRegId] = useState('');
+  const [regPhone, setRegPhone] = useState('');
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +29,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onRegister, error })
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (regId && regName) {
-        onRegister({ id: regId, name: regName });
+    if (regId && regName && regPhone) {
+        onRegister({ id: regId, name: regName, phone: regPhone });
     }
   }
 
@@ -122,6 +123,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onRegister, error })
           </label>
           <div className="mt-1">
             <input type="text" id="reg-id" value={regId} onChange={(e) => setRegId(e.target.value)} placeholder="e.g., priya.s" required className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent transition"/>
+          </div>
+        </div>
+        <div>
+          <label htmlFor="reg-phone" className="block text-sm font-medium text-gray-700">
+            Phone Number
+          </label>
+          <div className="mt-1">
+            <input type="tel" id="reg-phone" value={regPhone} onChange={(e) => setRegPhone(e.target.value)} placeholder="e.g., 9876543210" required className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-dark focus:border-transparent transition"/>
           </div>
         </div>
         

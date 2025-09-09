@@ -1,24 +1,36 @@
-// Fix: Populating the types.ts file with all necessary type definitions.
-// This resolves 'Cannot find name' errors and module resolution issues.
+// Fix: Populating types.ts with definitions used throughout the application.
+// This resolves "is not a module" and "Cannot find name" errors.
 
 export enum UserRole {
-  CUSTOMER = 'customer',
-  DRIVER = 'driver',
-  ADMIN = 'admin',
+  CUSTOMER = 'CUSTOMER',
+  DRIVER = 'DRIVER',
+  ADMIN = 'ADMIN',
 }
 
 export interface User {
   id: string;
   name: string;
   role: UserRole;
+  phone?: string;
+}
+
+export interface Driver {
+  id: string;
+  name: string;
+  role: UserRole.DRIVER;
+  vehicleDetails: string;
+  currentLocation: string;
+  isAvailable: boolean;
+  phone: string;
 }
 
 export enum BookingStatus {
-  PENDING = 'pending',
-  ACCEPTED = 'accepted',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
+  PENDING = 'PENDING',
+  DRIVER_FOUND = 'DRIVER_FOUND',
+  ACCEPTED = 'ACCEPTED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
 }
 
 export interface Booking {
@@ -29,19 +41,4 @@ export interface Booking {
   dropoffLocation: string;
   status: BookingStatus;
   fare?: number;
-  vehicleType: string;
-}
-
-export interface Driver {
-    id: string;
-    name: string;
-    vehicleDetails: string;
-    currentLocation: string;
-    isAvailable: boolean;
-}
-
-export interface Location {
-    lat: number;
-    lng: number;
-    address: string;
 }

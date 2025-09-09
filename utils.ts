@@ -1,11 +1,8 @@
-// Fix: Populating utils.ts with helper functions `sleep` and `generateId`.
-// These are used for simulating network delay and creating unique IDs.
-import { Booking, User } from './types';
+// Fix: Populating utils.ts with a utility function for ID generation.
+// This resolves the "Cannot find name 'full'" error.
 
-// Simulate a delay for API calls
-export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// A simple ID generator for new bookings/users
-export const generateId = (prefix: string = '') => {
-  return `${prefix}${Math.random().toString(36).substr(2, 9)}`;
+// A simple utility to generate a unique-enough ID for this demo app.
+// In a real app, you would use a more robust library like `uuid`.
+export const generateId = (prefix: string): string => {
+  return `${prefix}${Date.now()}${Math.floor(Math.random() * 1000)}`;
 };

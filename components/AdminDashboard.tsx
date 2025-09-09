@@ -3,11 +3,12 @@
 import React from 'react';
 import { Booking, Driver, BookingStatus } from '../types';
 import DriverForm from './DriverForm';
+import { PhoneIcon } from './icons/PhoneIcon';
 
 interface AdminDashboardProps {
   allBookings: Booking[];
   allDrivers: Driver[];
-  onAddDriver: (driverData: Omit<Driver, 'id'>) => void;
+  onAddDriver: (driverData: Omit<Driver, 'id' | 'role'>) => void;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ allBookings, allDrivers, onAddDriver }) => {
@@ -35,7 +36,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allBookings, allDrivers
                             <li key={driver.id} className="p-3 border rounded-md hover:bg-gray-50">
                                 <p className="font-semibold">{driver.name} <span className="text-sm font-normal text-gray-500">({driver.id})</span></p>
                                 <p className="text-sm text-gray-600">{driver.vehicleDetails}</p>
-                                <p className={`text-sm font-medium ${driver.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                                <p className="text-sm text-gray-600 flex items-center mt-1">
+                                    <PhoneIcon className="h-4 w-4 mr-2 text-gray-400" />
+                                    {driver.phone}
+                                </p>
+                                <p className={`text-sm font-medium mt-1 ${driver.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
                                     {driver.isAvailable ? 'Available' : 'On a trip'}
                                 </p>
                             </li>
