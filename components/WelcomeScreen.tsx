@@ -25,6 +25,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
       >
         Get Started
       </button>
+      <p className="absolute bottom-4 text-sm text-gray-500 animate-fade-in" style={{ animationDelay: '1.5s' }}>
+        created by sangamesh soppimath
+      </p>
     </div>
   );
 };
