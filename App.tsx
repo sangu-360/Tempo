@@ -17,6 +17,7 @@ const CURRENT_USER_STORAGE_KEY = 'tempoGoCurrentUser';
 
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>('WELCOME');
+  const [showLogoInHeader, setShowLogoInHeader] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -67,6 +68,7 @@ const App: React.FC = () => {
         if (savedUser?.id && savedUser?.role) {
           setCurrentUser(savedUser);
           setView('DASHBOARD');
+          setShowLogoInHeader(true); // Show logo immediately if logged in
         }
       }
     } catch (error) {
@@ -127,6 +129,11 @@ const App: React.FC = () => {
     };
   }, []);
 
+  const handleGetStarted = () => {
+    setView('LOGIN');
+    setTimeout(() => setShowLogoInHeader(true), 700); // Show logo after transition
+  };
+
   const handleLogin = async (id: string, role: UserRole, password?: string) => {
     setLoginError(null);
     let user: User | Driver | undefined;
@@ -150,6 +157,7 @@ const App: React.FC = () => {
       setCurrentUser(user);
       localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
       setView('DASHBOARD');
+      setShowLogoInHeader(true);
     }
   };
 
@@ -157,6 +165,7 @@ const App: React.FC = () => {
     setCurrentUser(null);
     localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
     setView('WELCOME');
+    setShowLogoInHeader(false);
   };
 
   const handleRegister = async (newUser: { id: string, name: string, phone: string }) => {
@@ -177,6 +186,7 @@ const App: React.FC = () => {
       setCurrentUser(data);
       localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(data));
       setView('DASHBOARD');
+      setShowLogoInHeader(true);
     }
   };
   
@@ -341,18 +351,18 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch(view) {
         case 'WELCOME':
-            return <WelcomeScreen onGetStarted={() => setView('LOGIN')} />;
+            return <WelcomeScreen onGetStarted={handleGetStarted} />;
         case 'LOGIN':
             return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} error={loginError} />;
         case 'DASHBOARD':
             return renderDashboard();
         default:
-            return <WelcomeScreen onGetStarted={() => setView('LOGIN')} />;
+            return <WelcomeScreen onGetStarted={handleGetStarted} />;
     }
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen font-sans text-gray-900">
+    <div className="min-h-screen font-sans">
       <div className="fixed top-4 right-4 z-[100] w-full max-w-sm space-y-3">
         {notifications.map((notification) => (
           <Notification
@@ -362,10 +372,12 @@ const App: React.FC = () => {
           />
         ))}
       </div>
-      <header className="bg-white shadow-md">
+      <header className={`bg-white/70 backdrop-blur-sm shadow-md sticky top-0 z-50 transition-opacity duration-500 ${view === 'WELCOME' ? 'opacity-0' : 'opacity-100'}`}>
         <nav className="container mx-auto px-6 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <TempoGoLogo className="h-10 w-10 text-yellow-500" />
+            <div className={`transition-opacity duration-300 ${showLogoInHeader ? 'opacity-100' : 'opacity-0'}`}>
+              <TempoGoLogo className="h-10 w-10 text-yellow-500" />
+            </div>
             <h1 className="text-2xl font-bold text-gray-800">TempoGo</h1>
           </div>
           {currentUser && (
