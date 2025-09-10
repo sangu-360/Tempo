@@ -6,3 +6,8 @@
 export const generateId = (prefix: string): string => {
   return `${prefix}${Date.now()}${Math.floor(Math.random() * 1000)}`;
 };
+
+// Fix: Add 'cn' utility function to resolve "has no exported member 'cn'" error.
+export function cn(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(' ');
+}
