@@ -5,15 +5,23 @@ import { PhoneIcon } from './icons/PhoneIcon';
 import { TruckIcon } from './icons/TruckIcon';
 import { LocationPinIcon } from './icons/LocationPinIcon';
 import { TempoGoLogo } from './icons/TempoGoLogo';
+import { ClockIcon } from './icons/ClockIcon';
 
 interface ConfirmationScreenProps {
   booking: Booking;
   driver: Driver;
 }
 
-// Fix: Implementing ConfirmationScreen to display booking and driver details.
-// This resolves "Cannot find name" errors and the "is not a module" error in CustomerDashboard.
 const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({ booking, driver }) => {
+  
+  const formatTime = (time: string) => {
+    try {
+        return new Date(`1970-01-01T${time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+        return time; // Fallback for invalid time format
+    }
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg animate-fade-in">
       <div className="text-center">
@@ -45,6 +53,15 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({ booking, driver
        <div className="mt-4 border-t pt-4">
         <h4 className="font-bold text-gray-700 mb-3">Trip Details</h4>
          <div className="space-y-3 text-sm">
+            {booking.pickupTime && (
+              <div className="flex">
+                  <ClockIcon className="h-5 w-5 text-gray-500 mr-3 flex-shrink-0" />
+                  <div>
+                      <p className="font-semibold text-gray-500 text-xs">PICKUP TIME</p>
+                      <p className="text-gray-800 font-semibold">{formatTime(booking.pickupTime)}</p>
+                  </div>
+              </div>
+            )}
             <div className="flex">
                 <LocationPinIcon className="h-5 w-5 text-blue-500 mr-3 flex-shrink-0" />
                 <div>

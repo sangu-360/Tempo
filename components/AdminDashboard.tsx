@@ -24,6 +24,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allBookings, allDrivers
         }
     }
     
+    const formatTime = (time: string) => {
+        if (!time) return 'N/A';
+        try {
+            return new Date(`1970-01-01T${time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        } catch {
+            return time; // Fallback for invalid time format
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
             {/* Column 1: Add Driver Form & Driver List */}
@@ -57,6 +66,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allBookings, allDrivers
                         <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
                                 <th scope="col" className="px-4 py-3">ID</th>
+                                <th scope="col" className="px-4 py-3">Time</th>
                                 <th scope="col" className="px-4 py-3">Customer</th>
                                 <th scope="col" className="px-4 py-3">Driver</th>
                                 <th scope="col" className="px-4 py-3">Route</th>
@@ -68,6 +78,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ allBookings, allDrivers
                             {allBookings.slice().reverse().map(booking => (
                                 <tr key={booking.id} className="bg-white border-b hover:bg-gray-50">
                                     <td className="px-4 py-2 font-medium text-gray-900">{booking.id}</td>
+                                    <td className="px-4 py-2">{formatTime(booking.pickupTime || '')}</td>
                                     <td className="px-4 py-2">{booking.customerId}</td>
                                     <td className="px-4 py-2">{booking.driverId || 'N/A'}</td>
                                     <td className="px-4 py-2">{booking.pickupLocation} to {booking.dropoffLocation}</td>

@@ -12,6 +12,7 @@ import { supabase } from './supabase';
 
 type AppView = 'WELCOME' | 'LOGIN' | 'DASHBOARD';
 const ADMIN_PASSWORD = 'Hero@123'; // Retained from original constants
+const CURRENT_USER_STORAGE_KEY = 'tempoGoCurrentUser';
 
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>('WELCOME');
@@ -22,10 +23,25 @@ const App: React.FC = () => {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // Data mapping helpers to convert between snake_case (DB) and camelCase (JS)
-  const mapBookingFromDb = (b: any): Booking => ({ id: b.id, customerId: b.customer_id, driverId: b.driver_id, pickupLocation: b.pickup_location, dropoffLocation: b.dropoff_location, status: b.status, fare: b.fare });
+  const mapBookingFromDb = (b: any): Booking => ({ id: b.id, customerId: b.customer_id, driverId: b.driver_id, pickupLocation: b.pickup_location, dropoffLocation: b.dropoff_location, status: b.status, fare: b.fare, pickupTime: b.pickup_time });
   const mapDriverFromDb = (d: any): Driver => ({ id: d.id, name: d.name, role: d.role, vehicleDetails: d.vehicle_details, currentLocation: d.current_location, isAvailable: d.is_available, phone: d.phone });
 
   useEffect(() => {
+    // Restore session from localStorage on initial load
+    try {
+      const savedUserJSON = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+      if (savedUserJSON) {
+        const savedUser = JSON.parse(savedUserJSON);
+        if (savedUser?.id && savedUser?.role) {
+          setCurrentUser(savedUser);
+          setView('DASHBOARD');
+        }
+      }
+    } catch (error) {
+      console.error("Could not restore session:", error);
+      localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+    }
+
     const fetchAllData = async () => {
       const { data: usersData, error: usersError } = await supabase.from('users').select('*');
       if (usersError) console.error('Error fetching users:', usersError); else setUsers(usersData || []);
@@ -83,12 +99,14 @@ const App: React.FC = () => {
 
     if (user) {
       setCurrentUser(user);
+      localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
       setView('DASHBOARD');
     }
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
+    localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
     setView('WELCOME');
   };
 
@@ -108,6 +126,7 @@ const App: React.FC = () => {
     
     if (data) {
       setCurrentUser(data);
+      localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(data));
       setView('DASHBOARD');
     }
   };
@@ -136,6 +155,7 @@ const App: React.FC = () => {
         status: newBooking.status,
         pickup_location: newBooking.pickupLocation,
         dropoff_location: newBooking.dropoffLocation,
+        pickup_time: newBooking.pickupTime,
     }]);
   };
 

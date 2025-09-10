@@ -1,25 +1,28 @@
 import React, { useState } from 'react';
 import { LocationPinIcon } from './icons/LocationPinIcon';
+import { ClockIcon } from './icons/ClockIcon';
 
 interface BookingFormProps {
-  onSubmit: (bookingData: { pickupLocation: string; dropoffLocation: string; }) => void;
+  onSubmit: (bookingData: { pickupLocation: string; dropoffLocation: string; pickupTime: string; }) => void;
 }
 
 const BookingForm: React.FC<BookingFormProps> = ({ onSubmit }) => {
   const [pickupLocation, setPickupLocation] = useState('');
   const [dropoffLocation, setDropoffLocation] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pickupLocation || !dropoffLocation) {
-      setError('Please fill in both pickup and drop-off locations.');
+    if (!pickupLocation || !dropoffLocation || !pickupTime) {
+      setError('Please fill in all locations and the desired pickup time.');
       return;
     }
     setError('');
-    onSubmit({ pickupLocation, dropoffLocation });
+    onSubmit({ pickupLocation, dropoffLocation, pickupTime });
     setPickupLocation('');
     setDropoffLocation('');
+    setPickupTime('');
   };
 
   return (
@@ -53,6 +56,21 @@ const BookingForm: React.FC<BookingFormProps> = ({ onSubmit }) => {
             <input
               type="text" id="dropoff-location" value={dropoffLocation} onChange={(e) => setDropoffLocation(e.target.value)}
               placeholder="e.g., 456, HSR Layout, Bangalore" required
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-dark"
+            />
+          </div>
+        </div>
+         <div>
+          <label htmlFor="pickup-time" className="block text-sm font-medium text-gray-700 mb-1">
+            Pickup Time
+          </label>
+          <div className="relative">
+             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <ClockIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="time" id="pickup-time" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)}
+              required
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-dark"
             />
           </div>

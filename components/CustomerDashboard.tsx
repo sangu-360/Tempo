@@ -6,6 +6,7 @@ import ConfirmationScreen from './ConfirmationScreen';
 import MapModal from './MapModal';
 import { LocationPinIcon } from './icons/LocationPinIcon';
 import { UserIcon } from './icons/UserIcon';
+import { ClockIcon } from './icons/ClockIcon';
 
 interface CustomerDashboardProps {
   user: User;
@@ -34,9 +35,17 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, bookings, a
     }
   }, [bookings, activeBooking, confirmedDriver]);
 
-  const handleBookingSubmit = (bookingData: { pickupLocation: string; dropoffLocation: string; }) => {
+  const handleBookingSubmit = (bookingData: { pickupLocation: string; dropoffLocation: string; pickupTime: string; }) => {
     onBookRide(bookingData);
     setViewState('LOADING');
+  };
+  
+  const formatTime = (time: string) => {
+    try {
+        return new Date(`1970-01-01T${time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+        return time; // Fallback for invalid time format
+    }
   };
 
   const getStatusChipColor = (status: BookingStatus) => {
@@ -117,7 +126,13 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, bookings, a
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-bold text-gray-700">Booking #{booking.id}</p>
-                      <p className="text-sm text-gray-500">{booking.pickupLocation} to {booking.dropoffLocation}</p>
+                      {booking.pickupTime && (
+                         <div className="flex items-center text-sm text-gray-600 mt-1">
+                            <ClockIcon className="h-4 w-4 mr-2 text-gray-400" />
+                            <span className="font-semibold">{formatTime(booking.pickupTime)}</span>
+                         </div>
+                      )}
+                      <p className="text-sm text-gray-500 mt-1">{booking.pickupLocation} to {booking.dropoffLocation}</p>
                     </div>
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusChipColor(booking.status)}`}>
                       {booking.status.replace('_', ' ')}

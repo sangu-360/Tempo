@@ -21,6 +21,14 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, bookings, onP
   const activeBooking = bookings.find(b => b.driverId === driver.id && (b.status === BookingStatus.ACCEPTED || b.status === BookingStatus.IN_PROGRESS));
   // This driver's past trips
   const pastBookings = bookings.filter(b => b.driverId === driver.id && (b.status === BookingStatus.COMPLETED || b.status === BookingStatus.CANCELLED));
+  
+  const formatTime = (time: string) => {
+    try {
+        return new Date(`1970-01-01T${time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+        return time; // Fallback for invalid time format
+    }
+  };
 
   const handleFareSubmit = (fare: number) => {
     if (bookingToProposeFare) {
@@ -42,6 +50,7 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, bookings, onP
           <p className="font-bold text-blue-800 text-lg">Booking #{activeBooking.id}</p>
             <div className="text-sm text-blue-700 mt-3 space-y-2">
               <p><span className="font-semibold">Status:</span> <span className="font-bold uppercase">{activeBooking.status.replace('_', ' ')}</span></p>
+              {activeBooking.pickupTime && <p><span className="font-semibold">Time:</span> {formatTime(activeBooking.pickupTime)}</p>}
               <p><span className="font-semibold">Customer ID:</span> {activeBooking.customerId}</p>
               <p><span className="font-semibold">From:</span> {activeBooking.pickupLocation}</p>
               <p><span className="font-semibold">To:</span> {activeBooking.dropoffLocation}</p>
@@ -77,6 +86,7 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, bookings, onP
                   <div key={booking.id} className="p-4 bg-white border rounded-lg shadow-sm">
                     <p className="font-bold text-gray-700">Booking #{booking.id}</p>
                     <div className="text-sm text-gray-600 mt-2 space-y-1">
+                      {booking.pickupTime && <p><span className="font-semibold">Time:</span> {formatTime(booking.pickupTime)}</p>}
                       <p><span className="font-semibold">From:</span> {booking.pickupLocation}</p>
                       <p><span className="font-semibold">To:</span> {booking.dropoffLocation}</p>
                     </div>
@@ -132,6 +142,7 @@ const DriverDashboard: React.FC<DriverDashboardProps> = ({ driver, bookings, onP
                                 {b.status}
                             </span>
                         </div>
+                        {b.pickupTime && <p className="text-xs text-gray-500 mt-1">{formatTime(b.pickupTime)}</p>}
                         <p className="text-sm text-gray-500 mt-1 truncate">{b.pickupLocation} to {b.dropoffLocation}</p>
                         <p className="text-sm font-bold text-gray-800 mt-1">Fare: ₹{b.fare}</p>
                     </li>

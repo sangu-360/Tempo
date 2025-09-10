@@ -39,6 +39,7 @@ export interface Booking {
   driverId?: string;
   pickupLocation: string;
   dropoffLocation: string;
+  pickupTime?: string;
   status: BookingStatus;
   fare?: number;
 }
