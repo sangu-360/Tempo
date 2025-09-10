@@ -43,3 +43,9 @@ export interface Booking {
   status: BookingStatus;
   fare?: number;
 }
+
+export interface AppNotification {
+  id: number;
+  message: string;
+  type: 'success' | 'info';
+}

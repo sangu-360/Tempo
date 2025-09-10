@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { User, UserRole, Driver, Booking, BookingStatus } from './types';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, UserRole, Driver, Booking, BookingStatus, AppNotification } from './types';
 import { generateId } from './utils';
 import LoginScreen from './components/LoginScreen';
 import CustomerDashboard from './components/CustomerDashboard';
 import DriverDashboard from './components/DriverDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import WelcomeScreen from './components/WelcomeScreen';
+import Notification from './components/Notification';
 import { TempoGoLogo } from './components/icons/TempoGoLogo';
 import { LogoutIcon } from './components/icons/LogoutIcon';
 import { supabase } from './supabase';
@@ -21,10 +22,41 @@ const App: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [currentUser, setCurrentUser] = useState<User | Driver | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const currentUserRef = useRef(currentUser);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
 
   // Data mapping helpers to convert between snake_case (DB) and camelCase (JS)
   const mapBookingFromDb = (b: any): Booking => ({ id: b.id, customerId: b.customer_id, driverId: b.driver_id, pickupLocation: b.pickup_location, dropoffLocation: b.dropoff_location, status: b.status, fare: b.fare, pickupTime: b.pickup_time });
   const mapDriverFromDb = (d: any): Driver => ({ id: d.id, name: d.name, role: d.role, vehicleDetails: d.vehicle_details, currentLocation: d.current_location, isAvailable: d.is_available, phone: d.phone });
+
+  const addNotification = (message: string, type: 'success' | 'info' = 'info') => {
+    const newNotification: AppNotification = {
+      id: Date.now(),
+      message,
+      type,
+    };
+    setNotifications(prev => [...prev, newNotification]);
+  };
+
+  const removeNotification = (id: number) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+  
+  const handleDbChanges = (payload: any, setter: React.Dispatch<React.SetStateAction<any[]>>, mapper?: (item: any) => any) => {
+      if (payload.eventType === 'INSERT') {
+          const newItem = mapper ? mapper(payload.new) : payload.new;
+          setter(current => [...current, newItem]);
+      } else if (payload.eventType === 'UPDATE') {
+          const updatedItem = mapper ? mapper(payload.new) : payload.new;
+          setter(current => current.map(item => item.id === updatedItem.id ? updatedItem : item));
+      } else if (payload.eventType === 'DELETE') {
+          setter(current => current.filter(item => item.id !== payload.old.id));
+      }
+  };
 
   useEffect(() => {
     // Restore session from localStorage on initial load
@@ -54,22 +86,39 @@ const App: React.FC = () => {
     };
 
     fetchAllData();
+    
+    const handleBookingChange = (payload: any) => {
+        handleDbChanges(payload, setBookings, mapBookingFromDb);
+        const user = currentUserRef.current;
+        if (!user) return;
 
-    const handleDbChanges = (payload: any, setter: React.Dispatch<React.SetStateAction<any[]>>, mapper?: (item: any) => any) => {
-        if (payload.eventType === 'INSERT') {
-            const newItem = mapper ? mapper(payload.new) : payload.new;
-            setter(current => [...current, newItem]);
-        } else if (payload.eventType === 'UPDATE') {
-            const updatedItem = mapper ? mapper(payload.new) : payload.new;
-            setter(current => current.map(item => item.id === updatedItem.id ? updatedItem : item));
-        } else if (payload.eventType === 'DELETE') {
-            setter(current => current.filter(item => item.id !== payload.old.id));
+        const newRecord = payload.new;
+        const oldRecord = payload.old;
+        
+        // Notification for DRIVERS on new requests
+        if (payload.eventType === 'INSERT' && user.role === UserRole.DRIVER && newRecord.status === BookingStatus.PENDING) {
+             addNotification("A new booking request is available!", "info");
         }
-    };
+
+        // Notification for CUSTOMERS when a driver proposes a fare
+        if (payload.eventType === 'UPDATE' && newRecord.customer_id === user.id && oldRecord.status === BookingStatus.PENDING && newRecord.status === BookingStatus.DRIVER_FOUND) {
+            addNotification(`Driver found for booking #${newRecord.id}! Please review the fare.`, "success");
+        }
+
+        // Notification for DRIVERS when their proposal is accepted
+        if (payload.eventType === 'UPDATE' && newRecord.driver_id === user.id && oldRecord.status === BookingStatus.DRIVER_FOUND && newRecord.status === BookingStatus.ACCEPTED) {
+            addNotification(`Proposal for booking #${newRecord.id} was accepted!`, "success");
+        }
+        
+        // Notification for DRIVERS when a customer cancels a booking they bid on
+        if (payload.eventType === 'UPDATE' && user.role === UserRole.DRIVER && oldRecord.driver_id === user.id && oldRecord.status === BookingStatus.DRIVER_FOUND && newRecord.status === BookingStatus.CANCELLED) {
+            addNotification(`Booking #${newRecord.id} was cancelled by the customer.`, "info");
+        }
+    }
 
     const usersSubscription = supabase.channel('users-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => handleDbChanges(payload, setUsers)).subscribe();
     const driversSubscription = supabase.channel('drivers-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, (payload) => handleDbChanges(payload, setDrivers, mapDriverFromDb)).subscribe();
-    const bookingsSubscription = supabase.channel('bookings-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, (payload) => handleDbChanges(payload, setBookings, mapBookingFromDb)).subscribe();
+    const bookingsSubscription = supabase.channel('bookings-channel').on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, handleBookingChange).subscribe();
 
     return () => {
       supabase.removeChannel(usersSubscription);
@@ -134,39 +183,92 @@ const App: React.FC = () => {
   const handleAddDriver = async (driverData: Omit<Driver, 'id' | 'role'>) => {
     const firstName = driverData.name.split(' ')[0].toLowerCase();
     const randomDigits = Math.floor(100 + Math.random() * 900);
-    const newDriver: Driver = { ...driverData, id: `${firstName}${randomDigits}`, role: UserRole.DRIVER };
+    const newDriverId = `${firstName}${randomDigits}`;
     
-    await supabase.from('drivers').insert([{
-        id: newDriver.id,
-        name: newDriver.name,
-        phone: newDriver.phone,
-        vehicle_details: newDriver.vehicleDetails,
-        current_location: newDriver.currentLocation,
-        is_available: newDriver.isAvailable,
-    }]);
+    const { data, error } = await supabase.from('drivers').insert([{
+        id: newDriverId,
+        name: driverData.name,
+        phone: driverData.phone,
+        vehicle_details: driverData.vehicleDetails,
+        current_location: driverData.currentLocation,
+        is_available: driverData.isAvailable,
+    }]).select().single();
+
+    if (error) { 
+      console.error("Failed to add driver:", error);
+      addNotification("Error: Could not add new driver.", "info");
+      return; 
+    }
+    if (data) {
+        const mappedDriver = mapDriverFromDb(data);
+        setDrivers(current => [...current, mappedDriver]);
+        addNotification(`Driver ${mappedDriver.name} added successfully.`, 'success');
+    }
   };
 
-  const handleBookRide = async (bookingData: Omit<Booking, 'id' | 'customerId' | 'status'>) => {
-    if (!currentUser) return;
+  const handleBookRide = async (bookingData: Omit<Booking, 'id' | 'customerId' | 'status'>): Promise<boolean> => {
+    if (!currentUser) return false;
     const newBooking: Booking = { id: generateId('BK'), customerId: currentUser.id, status: BookingStatus.PENDING, ...bookingData };
-    await supabase.from('bookings').insert([{
+    
+    const { data: createdBooking, error } = await supabase.from('bookings').insert([{
         id: newBooking.id,
         customer_id: newBooking.customerId,
         status: newBooking.status,
         pickup_location: newBooking.pickupLocation,
         dropoff_location: newBooking.dropoffLocation,
         pickup_time: newBooking.pickupTime,
-    }]);
+    }]).select().single();
+    
+    if (error) { 
+      console.error("Booking failed:", error); 
+      addNotification(`Booking failed: ${error.message}`, 'info');
+      return false;
+    }
+    if (createdBooking) {
+        const mappedBooking = mapBookingFromDb(createdBooking);
+        setBookings(current => [...current, mappedBooking]);
+        addNotification("Booking request sent successfully!", "success");
+        return true;
+    }
+    return false;
   };
 
   const handleProposeFare = async (bookingId: string, driverId: string, fare: number) => {
-    await supabase.from('bookings').update({ driver_id: driverId, fare, status: BookingStatus.DRIVER_FOUND }).eq('id', bookingId);
+    const { data: updatedBooking, error } = await supabase
+      .from('bookings')
+      .update({ driver_id: driverId, fare, status: BookingStatus.DRIVER_FOUND })
+      .eq('id', bookingId)
+      .select()
+      .single();
+
+    if (error) { console.error("Failed to propose fare:", error); return; }
+    if (updatedBooking) {
+      const mappedBooking = mapBookingFromDb(updatedBooking);
+      setBookings(currentBookings =>
+        currentBookings.map(b => b.id === mappedBooking.id ? mappedBooking : b)
+      );
+      addNotification("Fare proposed successfully!", "success");
+    }
   };
   
   const handleUpdateBookingStatus = async (bookingId: string, status: BookingStatus) => {
-    // First, update the driver's availability if needed
-    const { data: bookingForDriverUpdate } = await supabase.from('bookings').select('driver_id').eq('id', bookingId).single();
-    if (bookingForDriverUpdate?.driver_id) {
+    // 1. Update the booking status in the database and get the new record back.
+    const { data: updatedBooking, error } = await supabase
+      .from('bookings')
+      .update({ status })
+      .eq('id', bookingId)
+      .select()
+      .single();
+    
+    if (error || !updatedBooking) {
+      console.error("Failed to update booking status:", error);
+      addNotification("Error: Could not update trip status.", "info");
+      return;
+    }
+
+    // 2. Now that the booking is updated, handle side-effects (like driver availability).
+    const driverId = updatedBooking.driver_id;
+    if (driverId) {
         let isAvailable: boolean | undefined;
         if (status === BookingStatus.ACCEPTED) {
             isAvailable = false;
@@ -175,34 +277,34 @@ const App: React.FC = () => {
         }
 
         if (isAvailable !== undefined) {
-            await supabase.from('drivers').update({ is_available: isAvailable }).eq('id', bookingForDriverUpdate.driver_id);
+            // This can be a fire-and-forget, or we can await it if it's critical.
+            await supabase.from('drivers').update({ is_available: isAvailable }).eq('id', driverId);
         }
     }
 
-    // Now, update the booking's status and get the updated record back
-    const { data: updatedBooking, error } = await supabase
+    // 3. Update the local state for the current user.
+    const mappedBooking = mapBookingFromDb(updatedBooking);
+    setBookings(currentBookings =>
+        currentBookings.map(b => b.id === mappedBooking.id ? mappedBooking : b)
+    );
+  };
+
+  const handleRejectFare = async (bookingId: string) => {
+     const { data: updatedBooking, error } = await supabase
       .from('bookings')
-      .update({ status })
+      .update({ status: BookingStatus.PENDING, driver_id: null, fare: null })
       .eq('id', bookingId)
       .select()
       .single();
     
-    if (error) {
-        console.error("Failed to update booking status:", error);
-        return;
-    }
-    
-    // Manually update the local state for an instant UI response
+    if (error) { console.error("Failed to reject fare:", error); return; }
     if (updatedBooking) {
         const mappedBooking = mapBookingFromDb(updatedBooking);
         setBookings(currentBookings =>
             currentBookings.map(b => b.id === mappedBooking.id ? mappedBooking : b)
         );
+        addNotification("Fare has been rejected.", "info");
     }
-  };
-
-  const handleRejectFare = async (bookingId: string) => {
-     await supabase.from('bookings').update({ status: BookingStatus.PENDING, driver_id: null, fare: null }).eq('id', bookingId);
   };
 
   const renderDashboard = () => {
@@ -251,6 +353,15 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen font-sans text-gray-900">
+      <div className="fixed top-4 right-4 z-[100] w-full max-w-sm space-y-3">
+        {notifications.map((notification) => (
+          <Notification
+            key={notification.id}
+            notification={notification}
+            onClose={() => removeNotification(notification.id)}
+          />
+        ))}
+      </div>
       <header className="bg-white shadow-md">
         <nav className="container mx-auto px-6 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-3">

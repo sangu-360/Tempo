@@ -12,7 +12,7 @@ interface CustomerDashboardProps {
   user: User;
   bookings: Booking[];
   allDrivers: Driver[];
-  onBookRide: (bookingData: Omit<Booking, 'id' | 'customerId' | 'status'>) => void;
+  onBookRide: (bookingData: Omit<Booking, 'id' | 'customerId' | 'status'>) => Promise<boolean>;
   onUpdateBookingStatus: (bookingId: string, status: BookingStatus) => void;
   onRejectFare: (bookingId: string) => void;
 }
@@ -35,9 +35,13 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, bookings, a
     }
   }, [bookings, activeBooking, confirmedDriver]);
 
-  const handleBookingSubmit = (bookingData: { pickupLocation: string; dropoffLocation: string; pickupTime: string; }) => {
-    onBookRide(bookingData);
+  const handleBookingSubmit = async (bookingData: { pickupLocation: string; dropoffLocation: string; pickupTime: string; }) => {
     setViewState('LOADING');
+    const success = await onBookRide(bookingData);
+    if (!success) {
+      // If booking fails, go back to the form so the user can try again.
+      setViewState('FORM');
+    }
   };
   
   const formatTime = (time: string) => {
@@ -75,6 +79,12 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, bookings, a
   };
 
   const renderBookingItemContent = (booking: Booking) => {
+    const handleCancel = () => {
+        if (window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+            onUpdateBookingStatus(booking.id, BookingStatus.CANCELLED);
+        }
+    };
+
     if (booking.status === BookingStatus.DRIVER_FOUND && booking.driverId) {
         const proposingDriver = allDrivers.find(d => d.id === booking.driverId);
         return (
@@ -89,12 +99,27 @@ const CustomerDashboard: React.FC<CustomerDashboardProps> = ({ user, bookings, a
                         </div>
                     </div>
                     <div className="flex space-x-2">
+                        <button onClick={handleCancel} className="px-3 py-1 text-xs font-bold text-red-700 bg-red-100 rounded-md hover:bg-red-200">Cancel</button>
                         <button onClick={() => onRejectFare(booking.id)} className="px-3 py-1 text-xs font-bold text-white bg-red-500 rounded-md hover:bg-red-600">Reject</button>
                         <button onClick={() => onUpdateBookingStatus(booking.id, BookingStatus.ACCEPTED)} className="px-3 py-1 text-xs font-bold text-white bg-green-500 rounded-md hover:bg-green-600">Accept</button>
                     </div>
                 </div>
             </div>
         );
+    }
+    
+    if (booking.status === BookingStatus.PENDING) {
+        return (
+             <div className="mt-3 pt-3 border-t flex justify-between items-center">
+                <p className="text-sm text-yellow-700">Searching for a driver...</p>
+                <button 
+                    onClick={handleCancel}
+                    className="px-3 py-1 text-xs font-bold text-white bg-red-500 rounded-md hover:bg-red-600"
+                >
+                    Cancel Booking
+                </button>
+            </div>
+        )
     }
 
     return (
